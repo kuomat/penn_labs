@@ -80,6 +80,18 @@ def load_data():
         session.commit()
 
 
+# def create_client():
+#     default_client = OAuth2Client(
+#         client_id='12345',
+#         client_secret='pennlabs',
+#         client_name='pennlabsclient',
+#         is_confidential=True
+#     )
+
+#     # Add the client to the database
+#     db.session.add(default_client)
+#     db.session.commit()
+
 
 # No need to modify the below code.
 if __name__ == '__main__':
@@ -92,6 +104,7 @@ if __name__ == '__main__':
         db.create_all()
         print("Created new database.")
 
-        create_user()
+        # create_user()
         # scrape_clubs()
         load_data()
+        # create_client()
