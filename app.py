@@ -43,6 +43,7 @@ def load_user(user_id):
 
 
 # Retrieves a list of tag objects from db based on a provided list of tag names.
+# This method is primarily so that I don't accidentally create another Tag object when the same object already exists in the database.
 def get_all_tags(names):
     tags = Tag.query.filter(Tag.name.in_(names)).all()
     newTagNames = set(names) - set([tag.name for tag in tags])
@@ -51,6 +52,7 @@ def get_all_tags(names):
 
 
 # Retrieve a file object from db based on a provided file path
+# This method is primarily so that I don't accidentally create another File object when the same object already exists in the database.
 def get_files(path, binary_data, content_type):
     file = File.query.filter_by(path=path).first()
     if file:
@@ -471,122 +473,150 @@ def retrieve_file(club_name, resource_path):
 
 
 
-# Comments
+## Comments ##
 # Create a comment
 @app.route('/api/clubs/<string:club_name>/comments', methods=['POST'])
 @login_required
 def create_comment(club_name):
-    club = Club.query.filter_by(name=club_name).first()
+    try:
+        club = Club.query.filter_by(name=club_name).first()
 
-    if club:
-        comment_info = request.get_json()
+        if club:
+            # Get the information about the comment
+            comment_info = request.get_json()
 
-        # Check if all the required fields were sent
-        if not 'comment' in comment_info:
-            abort(400, description="Not all required fields were sent")
+            # Check if all the required fields were sent
+            if 'comment' not in comment_info:
+                return create_error_response("Not all required fields were sent", 400)
 
-        print("comment:", comment_info['comment'])
-        print("user id:", current_user.id)
-        print("club id:", club.id)
+            # Create a new comment object and add it to database
+            comment = Comment(
+                content=comment_info['comment'],
+                user_id=current_user.id,
+                club_id=club.id
+            )
+            db.session.add(comment)
+            db.session.commit()
 
-        comment = Comment(
-            content=comment_info['comment'],
-            user_id=current_user.id,
-            club_id=club.id
-        )
-        db.session.add(comment)
-        db.session.commit()
+            return create_success_response(f"Added comment to {club_name}.")
 
-        return jsonify({"message": f"Added comment to {club_name}."})
-    else:
-        abort(400, description=f"{club_name} not in database.")
+        else:
+            return create_error_response(f"{club_name} not in database.", 400)
+
+    except Exception as e:
+        return create_error_response(str(e), 500)
 
 
 # Retrieve all comments for a club
 @app.route('/api/clubs/<string:club_name>/comments', methods=['GET'])
 def retrieve_comments(club_name):
-    club = Club.query.filter_by(name=club_name).first()
+    try:
+        club = Club.query.filter_by(name=club_name).first()
 
-    if club:
-        comments = Comment.query.filter_by(club_id=club.id).all()
-        return jsonify([comment.to_json() for comment in comments])
-    else:
-        abort(400, description=f"{club_name} not in database.")
+        if club:
+            # Find the comments
+            comments = Comment.query.filter_by(club_id=club.id).all()
+            return create_success_response([comment.to_json() for comment in comments])
+        else:
+            return create_error_response(f"{club_name} not in database.", 400)
+
+    except Exception as e:
+        return create_error_response(str(e), 500)
 
 
 # Retrieve a specific comment
 @app.route('/api/clubs/comments/<int:comment_id>', methods=['GET'])
 @login_required
 def retrieve_specific_comment(comment_id):
-    comment = Comment.query.filter_by(id=comment_id).first()
+    try:
+        # Find the specific comment
+        comment = Comment.query.filter_by(id=comment_id).first()
 
-    if comment:
-        return jsonify(comment.to_json())
-    else:
-        abort(400, description=f"{comment_id} not in database.")
+        if comment:
+            return create_success_response(comment.to_json())
+        else:
+            return create_error_response(f"{comment_id} not in database.", 400)
+
+    except Exception as e:
+        return create_error_response(str(e), 500)
 
 
 # Update a comment
 @app.route('/api/clubs/comments/<int:comment_id>', methods=['PUT'])
 @login_required
 def update_comment(comment_id):
-    comment = Comment.query.filter_by(id=comment_id).first()
+    try:
+        comment = Comment.query.filter_by(id=comment_id).first()
 
-    if comment:
-        comment_info = request.get_json()
+        if comment:
+            comment_info = request.get_json()
 
-        # Check if all the required fields were sent
-        if not 'content' in comment_info:
-            abort(400, description="Not all required fields were sent")
+            # Check if all the required fields were sent
+            if 'content' not in comment_info:
+                return create_error_response("Not all required fields were sent", 400)
 
-        comment.content = comment_info['content']
-        db.session.commit()
+            comment.content = comment_info['content']
+            db.session.commit()
 
-        return jsonify({"message": f"Updated comment {comment_id}."})
-    else:
-        abort(400, description=f"{comment_id} not in database.")
+            return create_success_response(f"Updated comment {comment_id}.")
+
+        else:
+            return create_error_response(f"{comment_id} not in database.", 400)
+
+    except Exception as e:
+        return create_error_response(str(e), 500)
 
 
-# Delete a comment
+# Delete a specific comment
 @app.route('/api/clubs/comments/<int:comment_id>', methods=['DELETE'])
 @login_required
 def delete_comment(comment_id):
-    comment = Comment.query.filter_by(id=comment_id).first()
+    try:
+        comment = Comment.query.filter_by(id=comment_id).first()
 
-    if comment:
-        db.session.delete(comment)
-        db.session.commit()
-        return jsonify({"message": f"Deleted comment {comment_id}."})
-    else:
-        abort(400, description=f"{comment_id} not in database.")
+        if comment:
+            db.session.delete(comment)
+            db.session.commit()
+            return create_success_response(f"Deleted comment {comment_id}.")
+
+        else:
+            return create_error_response(f"{comment_id} not in database.", 400)
+
+    except Exception as e:
+        return create_error_response(str(e), 500)
 
 
-# Reply to a comment
+# Reply to a specific comment thread
 @app.route('/api/clubs/comments/<int:comment_id>/reply', methods=['POST'])
 @login_required
 def reply_comment(comment_id):
-    comment = Comment.query.filter_by(id=comment_id).first()
+    try:
+        comment = Comment.query.filter_by(id=comment_id).first()
 
-    if comment:
-        comment_info = request.get_json()
+        if comment:
+            comment_info = request.get_json()
 
-        # Check if all the required fields were sent
-        if not 'comment' in comment_info:
-            abort(400, description="Not all required fields were sent")
+            # Check if all the required fields were sent
+            if 'comment' not in comment_info:
+                return create_error_response("Not all required fields were sent", 400)
 
-        reply = Comment(
-            content=comment_info['comment'],
-            user_id=current_user.id,
-            club_id=comment.club_id,
-            parent_id=comment.id
-        )
-        db.session.add(reply)
-        db.session.commit()
+            # Create a new Comment object and relate it to the parent thread with parent_id
+            reply = Comment(
+                content=comment_info['comment'],
+                user_id=current_user.id,
+                club_id=comment.club_id,
+                parent_id=comment.id
+            )
+            db.session.add(reply)
+            db.session.commit()
 
-        return jsonify({"message": f"Added reply to comment {comment_id}."})
-    else:
-        abort(400, description=f"{comment_id} not in database.")
+            return create_success_response(f"Added reply to comment {comment_id}.")
 
+        else:
+            return create_error_response(f"{comment_id} not in database.", 400)
+
+    except Exception as e:
+        return create_error_response(str(e), 500)
 
 
 if __name__ == '__main__':

@@ -8,7 +8,9 @@ verify_ssl = true
 [packages]
 flask = "*"
 flask-sqlalchemy = "*"
-Flask-OAuthlib = "*"
+requests = "*"
+flask_login = "*"
+beautifulsoup4 = "*"
 
 [requires]
 python_version = "3.7"

@@ -3,6 +3,7 @@ from flask_login import UserMixin
 from datetime import datetime, timedelta
 
 
+# Establish many-to-many relationships between different tables based on their primary keys
 club_tag_association = db.Table(
     'club_tag_association',
     db.Column('club_id', db.Integer, db.ForeignKey('club.id')),
@@ -33,6 +34,7 @@ class Tag(db.Model):
         return {'name': self.name}
 
 
+# For uploading files
 class File(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(120), unique=True, nullable=False)
@@ -43,6 +45,7 @@ class File(db.Model):
         return '<File %r>' % self.path
 
 
+# Main class that stores all the information about clubs
 class Club(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     code = db.Column(db.String(80), primary_key=False, unique=False)
@@ -67,7 +70,7 @@ class Club(db.Model):
                 'files': [file.path for file in self.files]}
 
 
-
+# Different users for when signing in
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -107,12 +110,11 @@ class User(db.Model, UserMixin):
         self.login_attempts += 1
         print("login attempts:", self.login_attempts)
         if self.login_attempts >= 5:
-            # Lock the account for 10 minutes (adjust as needed)
-            self.locked_until = datetime.utcnow() + timedelta(minutes=1)
+            self.locked_until = datetime.utcnow() + timedelta(minutes=10)
             self.login_attempts = 0
 
 
-
+# For each comment
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
@@ -131,7 +133,7 @@ class Comment(db.Model):
                 'parent id': self.parent_id}
 
 
-
+## For OAUTH2 that I wasn't able to implement because of the domain names
 # class User(db.Model):
 #     id = db.Column(db.Integer, primary_key=True)
 #     username = db.Column(db.String(100), unique=True, nullable=False)
