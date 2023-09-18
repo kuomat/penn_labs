@@ -95,6 +95,7 @@ def get_clubs():
         return create_error_response(str(e), 500)
 
 
+# Get the information about a specific user
 @app.route('/api/users/<string:username>', methods=['GET'])
 def get_username(username):
     user = User.query.filter_by(username=username).first()
@@ -227,7 +228,7 @@ def get_clubs_by_tag(tag_name):
         return create_error_response(str(e), 500)
 
 
-# Delete a club
+# Delete a club if it exists
 @app.route('/api/clubs/<string:club_name>', methods=['DELETE'])
 @login_required
 def delete_club(club_name):
@@ -246,6 +247,8 @@ def delete_club(club_name):
 
 
 
+
+##### Authentication #####
 # ## User login ##
 # def query_client(client_id):
 #     return OAuth2Client.query.filter_by(client_id=client_id).first()
@@ -268,7 +271,6 @@ def delete_club(club_name):
 
 # authorization = AuthorizationServer(app, query_client=query_client, save_token=save_token)
 # revocation = create_revocation_endpoint(authorization, token_model=OAuth2Token)
-
 
 # Sign up
 @app.route('/signup', methods=['POST'])
@@ -298,7 +300,7 @@ def signup():
 
 
 
-# Login
+### OAUTH2 IMPLEMENTATION ###
 # @app.route('/login', methods=['POST'])
 # def login():
 #     user_info = request.get_json()
@@ -344,8 +346,7 @@ def signup():
 #     return jsonify({"message": "Logged out."})
 
 
-
-## Normal flask login
+# Login
 @app.route('/login', methods=['POST'])
 def login():
     try:
@@ -378,6 +379,7 @@ def login():
 
 
 # Logs the user out
+## Sample usage: '/logout'
 @app.route('/logout', methods=['POST'])
 def logout():
     try:
@@ -393,7 +395,8 @@ def logout():
 
 
 
-## File management ##
+
+##### File Management #####
 ## NOTE: Normally, I would upload the files to a file server like S3, but in this case, I am just going to save it under "folders"
 
 # Upload a file to a specific club
@@ -402,7 +405,7 @@ def upload_file(club_name, resource_path):
     try:
         club = Club.query.filter_by(name=club_name).first()
 
-        file_path = club_name + "/" + resource_path
+        file_path = club_name + "_" + resource_path
 
         if club:
             # Get the binary data and the content type header
@@ -439,7 +442,7 @@ def retrieve_file(club_name, resource_path):
     try:
         club = Club.query.filter_by(name=club_name).first()
 
-        file_path = club_name + "/" + resource_path
+        file_path = club_name + "_" + resource_path
 
         if club:
             file_path = os.path.join(UPLOAD_FOLDER, file_path)
@@ -473,7 +476,7 @@ def retrieve_file(club_name, resource_path):
 
 
 
-## Comments ##
+##### Comments #####
 # Create a comment
 @app.route('/api/clubs/<string:club_name>/comments', methods=['POST'])
 @login_required
@@ -552,10 +555,10 @@ def update_comment(comment_id):
             comment_info = request.get_json()
 
             # Check if all the required fields were sent
-            if 'content' not in comment_info:
+            if 'comment' not in comment_info:
                 return create_error_response("Not all required fields were sent", 400)
 
-            comment.content = comment_info['content']
+            comment.content = comment_info['comment']
             db.session.commit()
 
             return create_success_response(f"Updated comment {comment_id}.")

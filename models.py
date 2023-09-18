@@ -55,7 +55,7 @@ class Club(db.Model):
 
     # Many to many relationship
     tags = db.relationship('Tag', secondary=club_tag_association, backref=db.backref('club', lazy=True))
-    files = db.relationship('File', secondary=club_file_association, backref=db.backref('club', lazy=True))
+    files = db.relationship('File', secondary=club_file_association, backref=db.backref('club', lazy='dynamic'))
 
 
     def __repr__(self):
